@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>건강 점수 관리자</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+body { font-family: Arial, sans-serif; padding:20px; }
+button { padding:8px 12px; margin:5px 0; }
+table { border-collapse: collapse; margin-top:10px; }
+th, td { border:1px solid #ccc; padding:6px 10px; }
+</style>
+</head>
+<body>
+
+<h2>관리자 대시보드</h2>
+
+<!-- 1. 스프레드시트 이동 -->
+<button onclick="openSheet()">📄 스프레드시트 열기</button>
+
+<hr>
+
+<!-- 2. 이름 검색 -->
+<h3>이름 검색</h3>
+<input id="nameInput" placeholder="이름 입력">
+<button onclick="searchName()">검색</button>
+
+<table>
+  <thead>
+    <tr>
+      <th>날짜</th>
+      <th>총점 (일 최고)</th>
+    </tr>
+  </thead>
+  <tbody id="resultBody"></tbody>
+</table>
+
+<button onclick="drawChart()">📊 시각화 (최근 4개)</button>
+
+<canvas id="chart" style="max-width:600px; margin-top:20px;"></canvas>
+
+<hr>
+
+<!-- 4. 최근 3일 설문자 -->
+<h3>최근 3일 설문한 사람</h3>
+<button onclick="loadRecent()">불러오기</button>
+<ul id="recentList"></ul>
+
+<script>
+const SCRIPT_URL = "여기에_GAS_URL";
+let currentData = [];
+
+/* 1 */
+async function openSheet(){
+  const res = await fetch(`${SCRIPT_URL}?mode=sheet_url`);
+  const json = await res.json();
+  window.open(json.url, "_blank");
+}
+
+/* 2 */
+async function searchName(){
+  const name = document.getElementById("nameInput").value.trim();
+  if(!name) return alert("이름 입력");
+
+  const res = await fetch(`${SCRIPT_URL}?mode=search_name&name=${encodeURIComponent(name)}`);
+  const json = await res.json();
+
+  currentData = json.data;
+  const tbody = document.getElementById("resultBody");
+  tbody.innerHTML = "";
+
+  json.data.forEach(r=>{
+    tbody.innerHTML += `<tr><td>${r.date}</td><td>${r.totalScore}</td></tr>`;
+  });
+}
+
+/* 3 */
+let chart;
+function drawChart(){
+  const sliced = currentData.slice(-4);
+  const labels = sliced.map(r => r.date.slice(5,10).replace("-", "/"));
+  const scores = sliced.map(r => r.totalScore);
+
+  const ctx = document.getElementById("chart").getContext("2d");
+  if(chart) chart.destroy();
+
+  chart = new Chart(ctx,{
+    type:"line",
+    data:{
+      labels,
+      datasets:[{
+        label:"최근 점수",
+        data:scores,
+        borderWidth:2,
+        borderColor:"#0068ff",
+        tension:0.2
+      }]
+    }
+  });
+}
+
+/* 4 */
+async function loadRecent(){
+  const res = await fetch(`${SCRIPT_URL}?mode=recent_3days`);
+  const json = await res.json();
+
+  const ul = document.getElementById("recentList");
+  ul.innerHTML = "";
+  json.data.forEach(n=>{
+    ul.innerHTML += `<li>${n}</li>`;
+  });
+}
+</script>
+
+</body>
+</html>
