@@ -15,7 +15,7 @@ body {
 }
 
 .container {
-  max-width: 800px;
+  max-width: 900px;
   margin: auto;
   background:#fff;
   border-radius:12px;
@@ -25,29 +25,29 @@ body {
 
 h2 {
   text-align:center;
-  margin-bottom:20px;
+  margin-bottom:25px;
 }
 
 .section {
-  margin-top:25px;
+  margin-top:30px;
 }
 
-label {
-  font-weight:bold;
+.section h3 {
+  margin-bottom:10px;
 }
 
 input {
   width:100%;
   padding:10px;
-  margin-top:6px;
   border-radius:8px;
   border:1px solid #ccc;
+  margin-top:5px;
 }
 
 button {
-  margin-top:10px;
-  padding:12px;
   width:100%;
+  padding:12px;
+  margin-top:10px;
   background:#0068ff;
   color:#fff;
   border:none;
@@ -91,9 +91,32 @@ ul {
 
 <h2>📊 건강 점수 관리자 대시보드</h2>
 
-<!-- 이름 검색 -->
+<!-- =======================
+     참여자 요약 (최상단)
+     ======================= -->
 <div class="section">
-  <label>이름 검색</label>
+  <h3>👥 참여자별 설문 날짜 수</h3>
+  <button onclick="loadNameSummary()">참여도 불러오기</button>
+
+  <table>
+    <thead>
+      <tr>
+        <th>이름</th>
+        <th>설문한 날짜 수</th>
+      </tr>
+    </thead>
+    <tbody id="summaryBody"></tbody>
+  </table>
+</div>
+
+<hr>
+
+<!-- =======================
+     이름 검색
+     ======================= -->
+<div class="section">
+  <h3>🔍 이름 검색 (날짜별 최고 점수)</h3>
+
   <input id="nameInput" placeholder="이름 입력">
   <button onclick="searchName()">검색</button>
 
@@ -121,7 +144,9 @@ ul {
 
 <hr>
 
-<!-- 최근 3일 -->
+<!-- =======================
+     최근 3일 설문자
+     ======================= -->
 <div class="section">
   <h3>🕒 최근 3일 설문한 사람</h3>
   <button onclick="loadRecent()">불러오기</button>
@@ -130,7 +155,9 @@ ul {
 
 <hr>
 
-<!-- 스프레드시트 -->
+<!-- =======================
+     스프레드시트 이동
+     ======================= -->
 <div class="section">
   <button class="secondary" onclick="openSheet()">📄 Google 스프레드시트 열기</button>
 </div>
@@ -138,14 +165,37 @@ ul {
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbyf_z66f3vTiMSSuLwTOgbRCrayt8OIqDR6N9nPoRoyldGVQF2ZlBxb_iUBF_kYts1Q/exec"; // ★ 반드시 수정
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrVUIbEmUEX9Q_Mcs_q3NX3C7l_D-djKHFUsWv6Unsb3fwKfm-baFVOKdjDUvB98yM/exec"; // ★ 반드시 수정
+
 let currentData = [];
 let chart;
 
-/* 이름 검색 */
+/* =======================
+   참여자 요약
+   ======================= */
+async function loadNameSummary(){
+  const res = await fetch(`${SCRIPT_URL}?mode=name_summary`);
+  const json = await res.json();
+
+  const tbody = document.getElementById("summaryBody");
+  tbody.innerHTML = "";
+
+  json.data.forEach(r=>{
+    tbody.innerHTML += `
+      <tr>
+        <td>${r.name}</td>
+        <td><b>${r.count}</b></td>
+      </tr>
+    `;
+  });
+}
+
+/* =======================
+   이름 검색
+   ======================= */
 async function searchName(){
   const name = document.getElementById("nameInput").value.trim();
-  if(!name) return alert("이름 입력");
+  if(!name) return alert("이름을 입력하세요");
 
   const res = await fetch(`${SCRIPT_URL}?mode=search_name&name=${encodeURIComponent(name)}`);
   const json = await res.json();
@@ -175,9 +225,14 @@ async function searchName(){
   });
 }
 
-/* 차트 */
+/* =======================
+   차트 (최근 4개)
+   ======================= */
 function drawChart(){
-  if(currentData.length === 0) return alert("먼저 이름 검색");
+  if(currentData.length === 0){
+    alert("먼저 이름 검색을 하세요");
+    return;
+  }
 
   const sliced = currentData.slice(-4);
   const labels = sliced.map(r => r.date.slice(5,10).replace("-", "/"));
@@ -201,7 +256,9 @@ function drawChart(){
   });
 }
 
-/* 최근 3일 */
+/* =======================
+   최근 3일 설문자
+   ======================= */
 async function loadRecent(){
   const res = await fetch(`${SCRIPT_URL}?mode=recent_3days`);
   const json = await res.json();
@@ -214,7 +271,9 @@ async function loadRecent(){
   });
 }
 
-/* 시트 열기 */
+/* =======================
+   시트 열기
+   ======================= */
 async function openSheet(){
   const res = await fetch(`${SCRIPT_URL}?mode=sheet_url`);
   const json = await res.json();
