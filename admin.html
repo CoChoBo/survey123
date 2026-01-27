@@ -4,6 +4,7 @@
 <meta charset="UTF-8" />
 <title>건강 점수 관리자</title>
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
@@ -28,11 +29,6 @@ hr { margin: 24px 0; border:none; border-top:1px solid #e6e6e6; }
 .notice { background:#fff7e6; border:1px solid #ffe3a3; padding:10px; border-radius:10px; color:#6a4b00; font-size:13px; margin-top:10px; }
 .locked { opacity:0.35; pointer-events:none; user-select:none; }
 
-/* =========================
-   [CHANGED] 통신 로그 숨김
-   ========================= */
-#debug { display:none; }
-
 .debugbox {
   margin-top: 14px;
   background:#0b1020;
@@ -54,6 +50,7 @@ hr { margin: 24px 0; border:none; border-top:1px solid #e6e6e6; }
 <h2>📊 건강 점수 관리자 대시보드</h2>
 <div class="small">백엔드: Apps Script Web App (/exec) · 프론트: GitHub Pages</div>
 
+<!-- [CHANGED] 관리자 키 -->
 <div class="section">
   <h3>🔐 관리자 키</h3>
   <div class="row">
@@ -72,6 +69,7 @@ hr { margin: 24px 0; border:none; border-top:1px solid #e6e6e6; }
 <hr>
 
 <div id="securedArea" class="locked">
+  <!-- [CHANGED] 기간 조회 -->
   <div class="section">
     <h3>🗓️ 기간 조회 (기록 열람)</h3>
     <div class="row">
@@ -172,14 +170,14 @@ hr { margin: 24px 0; border:none; border-top:1px solid #e6e6e6; }
 
 <div class="section">
   <h3>🧪 통신 상태 / 에러 상세</h3>
-  <div class="small">필요 시 다시 #debug display를 block으로 바꾸면 로그를 볼 수 있습니다.</div>
+  <div class="small">문제 재현 시, 아래 로그를 그대로 복사해서 원인 파악에 사용하세요.</div>
   <div id="debug" class="debugbox"><span class="dim">로그가 여기에 표시됩니다.</span></div>
 </div>
 
 </div>
 
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrVUIbEmUEX9Q_Mcs_q3NX3C7l_D-djKHFUsWv6Unsb3fwKfm-baFVOKdjDUvB98yM/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbcZtM16JCVYqfD5cgC_kk3hN5EK5igTLkbQM57zkLYAsIt0ba9noJ1HJPxIgGM7wM/exec";
 
 let currentData = [];
 let chart;
@@ -192,17 +190,6 @@ function logDebug(...args){
   const msg = args.map(a => (typeof a === "string" ? a : JSON.stringify(a, null, 2))).join(" ");
   const now = new Date().toISOString();
   el.textContent = `[${now}] ${msg}\n` + el.textContent;
-}
-
-/* =========================
-   [CHANGED] 날짜 "MM.DD" 포맷 고정
-   ========================= */
-function toMMDD(dateStr){
-  const s = String(dateStr || "");
-  const m = s.slice(5,7);
-  const d = s.slice(8,10);
-  if(!m || !d) return s;
-  return `${m}.${d}`;
 }
 
 async function apiGet(params){
@@ -244,8 +231,10 @@ async function applyAdminKey(){
   sessionStorage.setItem("ADMIN_KEY", k);
 
   try{
-    await apiGet({ mode:"auth_check" });
-    alert("키가 적용되었습니다.");
+    const json = await apiGet({ mode:"auth_check" }); // [CHANGED] 백엔드 구현됨
+    if(json.ok){
+      alert("키가 적용되었습니다.");
+    }
   }catch(e){
     alert("키 적용은 되었지만, 백엔드 검증에 실패했습니다.\n\n" + e.message);
   }
@@ -271,6 +260,7 @@ function refreshAuthUI(){
   }
 }
 
+/* [CHANGED] 혈압 표시: "sbp,dbp" 또는 레거시 "3" */
 function formatBpCell(bpValue){
   const s = String(bpValue ?? "").trim();
   if(!s) return "";
@@ -380,9 +370,7 @@ function drawChart(){
     return;
   }
   const sliced = currentData.slice(-4);
-
-  /* [CHANGED] "MM.DD" 라벨로 고정 */
-  const labels = sliced.map(r => toMMDD(r.date || ""));
+  const labels = sliced.map(r => (r.date || "").slice(5,10).replace("-", "/"));
   const scores = sliced.map(r => Number(r.totalScore || 0));
 
   const ctx = document.getElementById("chart").getContext("2d");
