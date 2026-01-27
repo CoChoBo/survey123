@@ -46,7 +46,6 @@
 
     #score-box { margin-top: 25px; text-align: center; font-size: 20px; font-weight:bold; }
 
-    /* 별표 표시 */
     #stars { margin-top: 8px; text-align:center; }
     .star {
       font-size: 26px;
@@ -80,7 +79,12 @@
 
     #chart-container { margin-top: 35px; }
 
-    /* [CHANGED] 통신 로그/에러 상세 */
+    /* =========================
+       [CHANGED] 통신 로그 숨김
+       ========================= */
+    #debug { display: none; }
+
+    /* (숨김 상태여도 혹시 나중에 다시 켤 때를 대비해 스타일 유지) */
     .debug {
       margin-top: 14px;
       background:#0b1020;
@@ -115,7 +119,6 @@
   <div class="group">
     <label>걸음수</label>
     <div class="options" data-group="걸음수">
-      <!-- [CHANGED] 부등호/기호 제거 → 한국어 표현 -->
       <button class="option-btn" data-score="1" type="button">2000 미만</button>
       <button class="option-btn" data-score="2" type="button">2000 이상 5000 미만</button>
       <button class="option-btn" data-score="3" type="button">5000 이상 8000 미만</button>
@@ -127,7 +130,6 @@
   <div class="group">
     <label>LDL</label>
     <div class="options" data-group="LDL">
-      <!-- [CHANGED] 부등호/기호 제거 → 한국어 표현 -->
       <button class="option-btn" data-score="1" type="button">190 이상</button>
       <button class="option-btn" data-score="2" type="button">160 이상 190 미만</button>
       <button class="option-btn" data-score="3" type="button">130 이상 160 미만</button>
@@ -136,11 +138,9 @@
     </div>
   </div>
 
-  <!-- [CHANGED] 혈압 분리: 수축기/이완기 각 2.5점 (총 5점) -->
   <div class="group">
     <label>혈압(수축기)</label>
     <div class="options" data-group="수축기">
-      <!-- 점수: 0.5 ~ 2.5 -->
       <button class="option-btn" data-score="0.5" type="button">160 이상</button>
       <button class="option-btn" data-score="1.0" type="button">140 이상 160 미만</button>
       <button class="option-btn" data-score="1.5" type="button">130 이상 140 미만</button>
@@ -152,7 +152,6 @@
   <div class="group">
     <label>혈압(이완기)</label>
     <div class="options" data-group="이완기">
-      <!-- 점수: 0.5 ~ 2.5 -->
       <button class="option-btn" data-score="0.5" type="button">100 이상</button>
       <button class="option-btn" data-score="1.0" type="button">90 이상 100 미만</button>
       <button class="option-btn" data-score="1.5" type="button">85 이상 90 미만</button>
@@ -171,7 +170,6 @@
     <div id="bmiResult"></div>
 
     <div class="options" data-group="BMI" style="margin-top:10px;">
-      <!-- [CHANGED] 부등호/기호 제거 → 한국어 표현 -->
       <button class="option-btn" data-score="5" type="button">정상 (18.5 이상 25 미만)</button>
       <button class="option-btn" data-score="4" type="button">저체중(18.5 미만) 또는 과체중(25 이상 30 미만)</button>
       <button class="option-btn" data-score="3" type="button">비만(30 이상 35 미만)</button>
@@ -183,22 +181,21 @@
   <div id="score-box">총점: -</div>
   <div id="stars"></div>
 
-  <!-- [CHANGED] 버튼 문구 -->
   <button id="checkBtn" type="button">내 점수 저장하기</button>
 
   <div id="chart-container">
     <canvas id="chart"></canvas>
   </div>
 
-  <!-- [CHANGED] 통신 상태/에러 상세 -->
+  <!-- [CHANGED] 로그는 숨김 처리됨 -->
   <div id="debug" class="debug"><span class="dim">통신 로그가 여기에 표시됩니다.</span></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbcZtM16JCVYqfD5cgC_kk3hN5EK5igTLkbQM57zkLYAsIt0ba9noJ1HJPxIgGM7wM/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrVUIbEmUEX9Q_Mcs_q3NX3C7l_D-djKHFUsWv6Unsb3fwKfm-baFVOKdjDUvB98yM/exec";
 
-/******** [CHANGED] 로그 *********/
+/******** 로그 함수(숨김이지만 내부적으로는 남겨둠) *********/
 function logDebug(...args){
   const el = document.getElementById("debug");
   const msg = args.map(a => (typeof a === "string" ? a : JSON.stringify(a, null, 2))).join(" ");
@@ -206,7 +203,17 @@ function logDebug(...args){
   el.textContent = `[${now}] ${msg}\n` + el.textContent;
 }
 
-/******** [CHANGED] 공통 fetch: text/plain으로 프리플라이트 회피 + 상태/본문 로그 *********/
+/* =========================
+   [CHANGED] 날짜 "MM.DD" 포맷 고정
+   ========================= */
+function toMMDD(dateStr){
+  const s = String(dateStr || "");
+  const m = s.slice(5,7);
+  const d = s.slice(8,10);
+  if(!m || !d) return s;
+  return `${m}.${d}`;
+}
+
 async function apiPost(payload){
   const url = SCRIPT_URL;
   logDebug("POST", url, payload);
@@ -216,8 +223,7 @@ async function apiPost(payload){
     res = await fetch(url, {
       method: "POST",
       cache: "no-store",
-      // ★ 핵심: text/plain => CORS preflight(OPTIONS) 회피 확률이 매우 높음
-      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      headers: { "Content-Type": "text/plain;charset=utf-8" }, // 프리플라이트 회피
       body: JSON.stringify(payload)
     });
   }catch(err){
@@ -234,17 +240,13 @@ async function apiPost(payload){
   }
 
   let json;
-  try{
-    json = JSON.parse(text);
-  }catch(err){
-    throw new Error("JSON 파싱 실패 (백엔드 응답이 JSON이 아닙니다)\n" + text);
-  }
+  try{ json = JSON.parse(text); }
+  catch(err){ throw new Error("JSON 파싱 실패\n" + text); }
 
   if(!json.ok){
     const msg = (json.error && json.error.message) ? json.error.message : "unknown";
     throw new Error("서버 오류: " + msg + "\n" + text);
   }
-
   return json;
 }
 
@@ -278,7 +280,7 @@ async function apiGet(params){
   return json;
 }
 
-/******** 버튼 자동 정렬 (점수 높은 순) *********/
+/******** 버튼 자동 정렬(점수 높은 순) *********/
 document.querySelectorAll(".options").forEach(group=>{
   const btns = [...group.children];
   btns.sort((a,b)=>Number(b.dataset.score) - Number(a.dataset.score));
@@ -295,7 +297,7 @@ document.querySelectorAll(".options").forEach(group=>{
   });
 });
 
-/******** [CHANGED] BMI 계산 + BMI 점수 버튼 자동 선택 (요구사항 4) *********/
+/******** BMI 계산 + BMI 점수 버튼 자동 선택 *********/
 document.getElementById("bmiCalcBtn").addEventListener("click", ()=>{
   const w = parseFloat(document.getElementById("weight").value);
   const h = parseFloat(document.getElementById("height").value);
@@ -308,29 +310,15 @@ document.getElementById("bmiCalcBtn").addEventListener("click", ()=>{
   let txt = "";
   let scoreToSelect = null;
 
-  if(bmi < 18.5){
-    txt = "저체중";
-    scoreToSelect = 4;
-  } else if(bmi < 25){
-    txt = "정상";
-    scoreToSelect = 5;
-  } else if(bmi < 30){
-    txt = "과체중";
-    scoreToSelect = 4;
-  } else if(bmi < 35){
-    txt = "비만";
-    scoreToSelect = 3;
-  } else if(bmi < 40){
-    txt = "고도비만";
-    scoreToSelect = 2;
-  } else {
-    txt = "초고도비만";
-    scoreToSelect = 1;
-  }
+  if(bmi < 18.5){ txt="저체중"; scoreToSelect=4; }
+  else if(bmi < 25){ txt="정상"; scoreToSelect=5; }
+  else if(bmi < 30){ txt="과체중"; scoreToSelect=4; }
+  else if(bmi < 35){ txt="비만"; scoreToSelect=3; }
+  else if(bmi < 40){ txt="고도비만"; scoreToSelect=2; }
+  else { txt="초고도비만"; scoreToSelect=1; }
 
   document.getElementById("bmiResult").innerText = `BMI : ${bmi} (${txt})`;
 
-  // 자동 선택
   const bmiGroup = document.querySelector('.options[data-group="BMI"]');
   if(bmiGroup && scoreToSelect != null){
     [...bmiGroup.children].forEach(btn=>btn.classList.remove("selected"));
@@ -342,7 +330,6 @@ document.getElementById("bmiCalcBtn").addEventListener("click", ()=>{
 
 /******** 점수 계산 + 별 표시 *********/
 function updateScoreUI(){
-  // [CHANGED] 혈압 분리 반영
   const groups=["흡연","걸음수","LDL","수축기","이완기","BMI"];
   let sum=0;
 
@@ -360,8 +347,7 @@ function updateScoreUI(){
     return;
   }
 
-  // 총점 만점 25점 기준 별점(0~5)
-  const starRating = Math.round((sum / 5) * 2) / 2; // sum/25*5 = sum/5
+  const starRating = Math.round((sum / 5) * 2) / 2; // (sum/25*5) == sum/5
 
   scoreBox.innerText=`총점: ${sum.toFixed(1)}점 (별점 ${starRating.toFixed(1)} / 5)`;
 
@@ -374,12 +360,11 @@ function updateScoreUI(){
   starsBox.innerHTML = html;
 }
 
-/******** [CHANGED] 저장 + 그래프 로딩 *********/
+/******** 저장 + 그래프 로딩 *********/
 document.getElementById("checkBtn").addEventListener("click", async()=>{
   const name=document.getElementById("name").value.trim();
   if(!name) return alert("이름을 입력하세요!");
 
-  // [CHANGED] 혈압 분리 반영
   const groups=["흡연","걸음수","LDL","수축기","이완기","BMI"];
   let scores={};
 
@@ -391,7 +376,6 @@ document.getElementById("checkBtn").addEventListener("click", async()=>{
 
   const sbp = scores["수축기"];
   const dbp = scores["이완기"];
-
   const totalScore = scores.흡연 + scores.걸음수 + scores.LDL + sbp + dbp + scores.BMI;
 
   try{
@@ -401,27 +385,23 @@ document.getElementById("checkBtn").addEventListener("click", async()=>{
       smoking: scores["흡연"],
       steps: scores["걸음수"],
       ldl: scores["LDL"],
-      // [CHANGED] 혈압 신규: sbp/dbp 전송 (각 0.5~2.5)
       sbp,
       dbp,
       bmi: scores["BMI"],
-      // 서버에서도 재계산하지만 참고로 같이 전달
       totalScore
     });
 
     alert(`총점 ${Number(json.totalScore).toFixed(1)}점 저장 완료! (${json.date})`);
     await loadChart(name);
-
   }catch(e){
     alert("저장 실패:\n\n" + e.message);
   }
 });
 
-/******** 불러오기 + 날짜 MM/DD 표시 *********/
+/******** 불러오기 + 날짜 MM.DD 표시 *********/
 async function loadChart(name){
   const json = await apiGet({ mode:"get", name });
 
-  // 기대: json.data = [ {date, totalScore}, ... ]
   const byDate = {};
   (json.data || []).forEach(d=>{
     if(!byDate[d.date] || d.totalScore > byDate[d.date]) byDate[d.date]=d.totalScore;
@@ -430,7 +410,8 @@ async function loadChart(name){
   const rows = Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1);
   const sliced = rows.slice(-4);
 
-  const labels = sliced.map(r => r[0].slice(5,10).replace("-", "/"));
+  /* [CHANGED] "MM.DD" 라벨로 고정 */
+  const labels = sliced.map(r => toMMDD(r[0]));
   const scores = sliced.map(r => r[1]);
 
   drawChart(labels, scores);
