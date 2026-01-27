@@ -1,16 +1,16 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>건강 점수 계산기</title>
   <style>
     body { font-family: Arial, sans-serif; background: #fff; padding: 20px; }
-    .container { max-width: 500px; margin: auto; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+    .container { max-width: 560px; margin: auto; background: #fff; border-radius: 12px; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
     h2 { text-align: center; font-size: 24px; margin-bottom: 20px; }
 
     .group { margin-top: 18px; }
-    label { font-weight: bold; font-size: 15px; }
+    label { font-weight: bold; font-size: 15px; display:block; margin-bottom: 6px; }
     .options { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 8px; }
 
     .option-btn {
@@ -46,7 +46,7 @@
 
     #score-box { margin-top: 25px; text-align: center; font-size: 20px; font-weight:bold; }
 
-    /* === 별표 표시 스타일 (수정됨) === */
+    /* 별표 표시 */
     #stars { margin-top: 8px; text-align:center; }
     .star {
       font-size: 26px;
@@ -55,9 +55,7 @@
       display: inline-block;
       color: #ddd;
     }
-    .star.full {
-      color: gold;
-    }
+    .star.full { color: gold; }
     .star.half::before {
       content: "★";
       position: absolute;
@@ -81,6 +79,20 @@
     }
 
     #chart-container { margin-top: 35px; }
+
+    /* [CHANGED] 통신 로그/에러 상세 */
+    .debug {
+      margin-top: 14px;
+      background:#0b1020;
+      color:#d7e1ff;
+      border-radius:12px;
+      padding:12px;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono","Courier New", monospace;
+      font-size: 12px;
+      line-height: 1.5;
+      white-space: pre-wrap;
+    }
+    .dim { color:#9aa6c8; }
   </style>
 </head>
 <body>
@@ -89,80 +101,182 @@
   <h2>건강 점수 계산기</h2>
 
   <label>이름</label>
-  <input type="text" id="name" placeholder="이름을 입력하세요" style="width:100%; padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ccc;">
+  <input type="text" id="name" placeholder="이름을 입력하세요"
+         style="width:100%; padding:10px; margin-top:5px; border-radius:8px; border:1px solid #ccc;" />
 
   <div class="group">
     <label>흡연</label>
     <div class="options" data-group="흡연">
-      <button class="option-btn" data-score="3">담배 핀다</button>
-      <button class="option-btn" data-score="5">담배 안핀다</button>
+      <button class="option-btn" data-score="3" type="button">담배 핀다</button>
+      <button class="option-btn" data-score="5" type="button">담배 안 핀다</button>
     </div>
   </div>
 
   <div class="group">
     <label>걸음수</label>
     <div class="options" data-group="걸음수">
-      <button class="option-btn" data-score="1">&lt;2000</button>
-      <button class="option-btn" data-score="2">2000–5000</button>
-      <button class="option-btn" data-score="3">5000–8000</button>
-      <button class="option-btn" data-score="4">8000–12000</button>
-      <button class="option-btn" data-score="5">&ge;12000</button>
+      <!-- [CHANGED] 부등호/기호 제거 → 한국어 표현 -->
+      <button class="option-btn" data-score="1" type="button">2000 미만</button>
+      <button class="option-btn" data-score="2" type="button">2000 이상 5000 미만</button>
+      <button class="option-btn" data-score="3" type="button">5000 이상 8000 미만</button>
+      <button class="option-btn" data-score="4" type="button">8000 이상 12000 미만</button>
+      <button class="option-btn" data-score="5" type="button">12000 이상</button>
     </div>
   </div>
 
   <div class="group">
     <label>LDL</label>
     <div class="options" data-group="LDL">
-      <button class="option-btn" data-score="1">&ge;190</button>
-      <button class="option-btn" data-score="2">160–189</button>
-      <button class="option-btn" data-score="3">130–159</button>
-      <button class="option-btn" data-score="4">100–129</button>
-      <button class="option-btn" data-score="5">&lt;100</button>
+      <!-- [CHANGED] 부등호/기호 제거 → 한국어 표현 -->
+      <button class="option-btn" data-score="1" type="button">190 이상</button>
+      <button class="option-btn" data-score="2" type="button">160 이상 190 미만</button>
+      <button class="option-btn" data-score="3" type="button">130 이상 160 미만</button>
+      <button class="option-btn" data-score="4" type="button">100 이상 130 미만</button>
+      <button class="option-btn" data-score="5" type="button">100 미만</button>
+    </div>
+  </div>
+
+  <!-- [CHANGED] 혈압 분리: 수축기/이완기 각 2.5점 (총 5점) -->
+  <div class="group">
+    <label>혈압(수축기)</label>
+    <div class="options" data-group="수축기">
+      <!-- 점수: 0.5 ~ 2.5 -->
+      <button class="option-btn" data-score="0.5" type="button">160 이상</button>
+      <button class="option-btn" data-score="1.0" type="button">140 이상 160 미만</button>
+      <button class="option-btn" data-score="1.5" type="button">130 이상 140 미만</button>
+      <button class="option-btn" data-score="2.0" type="button">120 이상 130 미만</button>
+      <button class="option-btn" data-score="2.5" type="button">120 미만</button>
     </div>
   </div>
 
   <div class="group">
-    <label>혈압</label>
-    <div class="options" data-group="혈압">
-      <button class="option-btn" data-score="1">&ge;160/100</button>
-      <button class="option-btn" data-score="2">140/90–159/99</button>
-      <button class="option-btn" data-score="3">130/85–139/89</button>
-      <button class="option-btn" data-score="4">120/80–129/84</button>
-      <button class="option-btn" data-score="5">&lt;120/80</button>
+    <label>혈압(이완기)</label>
+    <div class="options" data-group="이완기">
+      <!-- 점수: 0.5 ~ 2.5 -->
+      <button class="option-btn" data-score="0.5" type="button">100 이상</button>
+      <button class="option-btn" data-score="1.0" type="button">90 이상 100 미만</button>
+      <button class="option-btn" data-score="1.5" type="button">85 이상 90 미만</button>
+      <button class="option-btn" data-score="2.0" type="button">80 이상 85 미만</button>
+      <button class="option-btn" data-score="2.5" type="button">80 미만</button>
     </div>
   </div>
 
   <div class="group">
     <label>BMI 자동 계산</label>
     <div id="bmiBox">
-      <input type="number" id="weight" placeholder="체중 (kg)">
-      <input type="number" id="height" placeholder="신장 (cm)">
+      <input type="number" id="weight" placeholder="체중 (kg)" />
+      <input type="number" id="height" placeholder="신장 (cm)" />
     </div>
-    <button id="bmiCalcBtn">BMI 계산하기</button>
+    <button id="bmiCalcBtn" type="button">BMI 계산하기</button>
     <div id="bmiResult"></div>
 
     <div class="options" data-group="BMI" style="margin-top:10px;">
-      <button class="option-btn" data-score="5">정상 (18.5–25)</button>
-      <button class="option-btn" data-score="4">&lt;18.5 또는 25–30</button>
-      <button class="option-btn" data-score="3">30–35</button>
-      <button class="option-btn" data-score="2">35–40</button>
-      <button class="option-btn" data-score="1">&ge;40</button>
+      <!-- [CHANGED] 부등호/기호 제거 → 한국어 표현 -->
+      <button class="option-btn" data-score="5" type="button">정상 (18.5 이상 25 미만)</button>
+      <button class="option-btn" data-score="4" type="button">저체중(18.5 미만) 또는 과체중(25 이상 30 미만)</button>
+      <button class="option-btn" data-score="3" type="button">비만(30 이상 35 미만)</button>
+      <button class="option-btn" data-score="2" type="button">고도비만(35 이상 40 미만)</button>
+      <button class="option-btn" data-score="1" type="button">초고도비만(40 이상)</button>
     </div>
   </div>
 
   <div id="score-box">총점: -</div>
   <div id="stars"></div>
 
-  <button id="checkBtn">나의 건강점수는?</button>
+  <!-- [CHANGED] 버튼 문구 -->
+  <button id="checkBtn" type="button">내 점수 저장하기</button>
 
   <div id="chart-container">
     <canvas id="chart"></canvas>
   </div>
+
+  <!-- [CHANGED] 통신 상태/에러 상세 -->
+  <div id="debug" class="debug"><span class="dim">통신 로그가 여기에 표시됩니다.</span></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
-const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbzrVUIbEmUEX9Q_Mcs_q3NX3C7l_D-djKHFUsWv6Unsb3fwKfm-baFVOKdjDUvB98yM/exec";
+const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbxbcZtM16JCVYqfD5cgC_kk3hN5EK5igTLkbQM57zkLYAsIt0ba9noJ1HJPxIgGM7wM/exec";
+
+/******** [CHANGED] 로그 *********/
+function logDebug(...args){
+  const el = document.getElementById("debug");
+  const msg = args.map(a => (typeof a === "string" ? a : JSON.stringify(a, null, 2))).join(" ");
+  const now = new Date().toISOString();
+  el.textContent = `[${now}] ${msg}\n` + el.textContent;
+}
+
+/******** [CHANGED] 공통 fetch: text/plain으로 프리플라이트 회피 + 상태/본문 로그 *********/
+async function apiPost(payload){
+  const url = SCRIPT_URL;
+  logDebug("POST", url, payload);
+
+  let res, text;
+  try{
+    res = await fetch(url, {
+      method: "POST",
+      cache: "no-store",
+      // ★ 핵심: text/plain => CORS preflight(OPTIONS) 회피 확률이 매우 높음
+      headers: { "Content-Type": "text/plain;charset=utf-8" },
+      body: JSON.stringify(payload)
+    });
+  }catch(err){
+    logDebug("FETCH_ERROR", String(err));
+    throw new Error("네트워크 오류: fetch 실패\n" + String(err));
+  }
+
+  logDebug("HTTP", `${res.status} ${res.statusText}`);
+  text = await res.text();
+  logDebug("BODY", text.slice(0, 800));
+
+  if(!res.ok){
+    throw new Error(`HTTP 오류 (${res.status} ${res.statusText})\n${text}`);
+  }
+
+  let json;
+  try{
+    json = JSON.parse(text);
+  }catch(err){
+    throw new Error("JSON 파싱 실패 (백엔드 응답이 JSON이 아닙니다)\n" + text);
+  }
+
+  if(!json.ok){
+    const msg = (json.error && json.error.message) ? json.error.message : "unknown";
+    throw new Error("서버 오류: " + msg + "\n" + text);
+  }
+
+  return json;
+}
+
+async function apiGet(params){
+  const q = new URLSearchParams(params);
+  const url = `${SCRIPT_URL}?${q.toString()}`;
+  logDebug("GET", url);
+
+  let res, text;
+  try{
+    res = await fetch(url, { method:"GET", cache:"no-store", headers:{ "Accept":"application/json" } });
+  }catch(err){
+    logDebug("FETCH_ERROR", String(err));
+    throw new Error("네트워크 오류: fetch 실패\n" + String(err));
+  }
+
+  logDebug("HTTP", `${res.status} ${res.statusText}`);
+  text = await res.text();
+  logDebug("BODY", text.slice(0, 800));
+
+  if(!res.ok) throw new Error(`HTTP 오류 (${res.status} ${res.statusText})\n${text}`);
+
+  let json;
+  try{ json = JSON.parse(text); }
+  catch(err){ throw new Error("JSON 파싱 실패\n" + text); }
+
+  if(!json.ok){
+    const msg = (json.error && json.error.message) ? json.error.message : "unknown";
+    throw new Error("서버 오류: " + msg + "\n" + text);
+  }
+  return json;
+}
 
 /******** 버튼 자동 정렬 (점수 높은 순) *********/
 document.querySelectorAll(".options").forEach(group=>{
@@ -171,18 +285,17 @@ document.querySelectorAll(".options").forEach(group=>{
   btns.forEach(btn=>group.appendChild(btn));
 });
 
-
 /******** 버튼 UI *********/
 document.querySelectorAll(".options").forEach(group=>{
   group.addEventListener("click",e=>{
-    if(!e.target.classList.contains("option-btn"))return;
+    if(!e.target.classList.contains("option-btn")) return;
     [...group.children].forEach(btn=>btn.classList.remove("selected"));
     e.target.classList.add("selected");
     updateScoreUI();
   });
 });
 
-/******** BMI 계산 *********/
+/******** [CHANGED] BMI 계산 + BMI 점수 버튼 자동 선택 (요구사항 4) *********/
 document.getElementById("bmiCalcBtn").addEventListener("click", ()=>{
   const w = parseFloat(document.getElementById("weight").value);
   const h = parseFloat(document.getElementById("height").value);
@@ -190,19 +303,47 @@ document.getElementById("bmiCalcBtn").addEventListener("click", ()=>{
     alert("BMI 계산을 위해 체중과 신장 모두 입력하세요!");
     return;
   }
-  const bmi = (w / ((h/100)**2)).toFixed(1);
+  const bmi = Number((w / ((h/100)**2)).toFixed(1));
+
   let txt = "";
-  if(bmi < 18.5) txt = "저체중";
-  else if(bmi < 25) txt = "정상";
-  else if(bmi < 30) txt = "과체중";
-  else if(bmi < 35) txt = "비만";
-  else txt = "고도비만";
+  let scoreToSelect = null;
+
+  if(bmi < 18.5){
+    txt = "저체중";
+    scoreToSelect = 4;
+  } else if(bmi < 25){
+    txt = "정상";
+    scoreToSelect = 5;
+  } else if(bmi < 30){
+    txt = "과체중";
+    scoreToSelect = 4;
+  } else if(bmi < 35){
+    txt = "비만";
+    scoreToSelect = 3;
+  } else if(bmi < 40){
+    txt = "고도비만";
+    scoreToSelect = 2;
+  } else {
+    txt = "초고도비만";
+    scoreToSelect = 1;
+  }
+
   document.getElementById("bmiResult").innerText = `BMI : ${bmi} (${txt})`;
+
+  // 자동 선택
+  const bmiGroup = document.querySelector('.options[data-group="BMI"]');
+  if(bmiGroup && scoreToSelect != null){
+    [...bmiGroup.children].forEach(btn=>btn.classList.remove("selected"));
+    const target = [...bmiGroup.children].find(btn => Number(btn.dataset.score) === Number(scoreToSelect));
+    if(target) target.classList.add("selected");
+    updateScoreUI();
+  }
 });
 
 /******** 점수 계산 + 별 표시 *********/
 function updateScoreUI(){
-  const groups=["흡연","걸음수","LDL","혈압","BMI"];
+  // [CHANGED] 혈압 분리 반영
+  const groups=["흡연","걸음수","LDL","수축기","이완기","BMI"];
   let sum=0;
 
   groups.forEach(g=>{
@@ -212,89 +353,94 @@ function updateScoreUI(){
 
   const scoreBox=document.getElementById("score-box");
   const starsBox=document.getElementById("stars");
+
   if(sum===0){
     scoreBox.innerText="총점: -";
     starsBox.innerHTML="";
     return;
   }
 
-  const starRating = Math.round((sum / 5) * 2) / 2;
+  // 총점 만점 25점 기준 별점(0~5)
+  const starRating = Math.round((sum / 5) * 2) / 2; // sum/25*5 = sum/5
 
-  scoreBox.innerText=`총점: ${sum}점 (별점 ${starRating.toFixed(1)} / 5)`;
+  scoreBox.innerText=`총점: ${sum.toFixed(1)}점 (별점 ${starRating.toFixed(1)} / 5)`;
 
   let html="";
   for(let i=1;i<=5;i++){
-    if(starRating>=i){
-      html += `<span class="star full">★</span>`;
-    } else if(starRating>=i-0.5){
-      html += `<span class="star half">★</span>`;
-    } else {
-      html += `<span class="star">★</span>`;
-    }
+    if(starRating>=i) html += `<span class="star full">★</span>`;
+    else if(starRating>=i-0.5) html += `<span class="star half">★</span>`;
+    else html += `<span class="star">★</span>`;
   }
   starsBox.innerHTML = html;
 }
 
-/******** 저장 + 그래프 로딩 *********/
-document.getElementById("checkBtn").addEventListener("click",async()=>{
+/******** [CHANGED] 저장 + 그래프 로딩 *********/
+document.getElementById("checkBtn").addEventListener("click", async()=>{
   const name=document.getElementById("name").value.trim();
-  if(!name)return alert("이름을 입력하세요!");
+  if(!name) return alert("이름을 입력하세요!");
 
-  const groups=["흡연","걸음수","LDL","혈압","BMI"];
+  // [CHANGED] 혈압 분리 반영
+  const groups=["흡연","걸음수","LDL","수축기","이완기","BMI"];
   let scores={};
+
   for(let g of groups){
     const sel=document.querySelector(`.options[data-group="${g}"] .selected`);
-    if(!sel)return alert(`${g} 항목을 선택해주세요!`);
+    if(!sel) return alert(`${g} 항목을 선택해주세요!`);
     scores[g]=Number(sel.dataset.score);
   }
 
-  const totalScore = scores.흡연 + scores.걸음수 + scores.LDL + scores.혈압 + scores.BMI;
+  const sbp = scores["수축기"];
+  const dbp = scores["이완기"];
 
-  await fetch(SCRIPT_URL,{
-    method:"POST",
-    body: JSON.stringify({
+  const totalScore = scores.흡연 + scores.걸음수 + scores.LDL + sbp + dbp + scores.BMI;
+
+  try{
+    const json = await apiPost({
       mode: "save",
       name,
       smoking: scores["흡연"],
       steps: scores["걸음수"],
       ldl: scores["LDL"],
-      bp: scores["혈압"],
+      // [CHANGED] 혈압 신규: sbp/dbp 전송 (각 0.5~2.5)
+      sbp,
+      dbp,
       bmi: scores["BMI"],
+      // 서버에서도 재계산하지만 참고로 같이 전달
       totalScore
-    })
-  });
+    });
 
-  alert(`총점 ${totalScore}점 저장 완료!`);
-  loadChart(name);
+    alert(`총점 ${Number(json.totalScore).toFixed(1)}점 저장 완료! (${json.date})`);
+    await loadChart(name);
+
+  }catch(e){
+    alert("저장 실패:\n\n" + e.message);
+  }
 });
 
 /******** 불러오기 + 날짜 MM/DD 표시 *********/
 async function loadChart(name){
-  const res=await fetch(`${SCRIPT_URL}?mode=get&name=${encodeURIComponent(name)}`);
-  const json=await res.json();
-  if(json.status!=="ok")return;
+  const json = await apiGet({ mode:"get", name });
 
-  const byDate={};
-  json.data.forEach(d=>{
+  // 기대: json.data = [ {date, totalScore}, ... ]
+  const byDate = {};
+  (json.data || []).forEach(d=>{
     if(!byDate[d.date] || d.totalScore > byDate[d.date]) byDate[d.date]=d.totalScore;
   });
 
-  const rows=Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1);
-  const sliced=rows.slice(-4);
+  const rows = Object.entries(byDate).sort((a,b)=>a[0]>b[0]?1:-1);
+  const sliced = rows.slice(-4);
 
-  const labels=sliced.map(r=>{
-    return r[0].slice(5,10).replace("-", "/");
-  });
-  const scores=sliced.map(r=>r[1]);
+  const labels = sliced.map(r => r[0].slice(5,10).replace("-", "/"));
+  const scores = sliced.map(r => r[1]);
 
-  drawChart(labels,scores);
+  drawChart(labels, scores);
 }
 
 /******** 차트 출력 *********/
 let chart;
-function drawChart(labels,scores){
+function drawChart(labels, scores){
   const ctx=document.getElementById("chart").getContext("2d");
-  if(chart)chart.destroy();
+  if(chart) chart.destroy();
   chart=new Chart(ctx,{
     type:"line",
     data:{
@@ -308,9 +454,7 @@ function drawChart(labels,scores){
       }]
     },
     options:{
-      scales:{
-        x:{ ticks:{ maxRotation:0, minRotation:0 } }
-      }
+      scales:{ x:{ ticks:{ maxRotation:0, minRotation:0 } } }
     }
   });
 }
